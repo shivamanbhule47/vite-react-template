@@ -1,56 +1,20 @@
-import { useState, useEffect } from "react";
-import "./App.css";
+import { Hono } from 'hono';
 
-// Define the shape of a blog post
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-}
+const app = new Hono<{ Bindings: { DB: D1Database } }>();
 
-function App() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+// 1. THIS GETS YOUR BLOG POSTS
+app.get('/api/posts', async (c) => {
+  const { results } = await c.env.DB.prepare('SELECT * FROM posts ORDER BY id DESC').all();
+  return c.json(results);
+});
 
-  // Fetch posts when the component mounts
-  useEffect(() => {
-    fetch("/api/posts")
-      .then((res) => res.json())
-      .then((data: Post[]) => {
-        setPosts(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching posts:", err);
-        setLoading(false);
-      });
-  }, []);
+// 2. THIS SAVES YOUR NEW BLOG POST
+app.post('/api/post', async (c) => {
+  const { title, content } = await c.req.json();
+  await c.env.DB.prepare('INSERT INTO posts (title, content) VALUES (?, ?)')
+    .bind(title, content)
+    .run();
+  return c.json({ status: "Success!" });
+});
 
-  return (
-    <div className="container">
-      <header>
-        <h1>My Daily Blog</h1>
-        <p>Welcome to my thoughts and updates.</p>
-      </header>
-
-      <main>
-        {loading ? (
-          <p>Loading posts...</p>
-        ) : posts.length > 0 ? (
-          posts.map((post) => (
-            <article key={post.id} className="blog-card">
-              <h2>{post.title}</h2>
-              <small className="date">{post.date}</small>
-              <p>{post.content}</p>
-            </article>
-          ))
-        ) : (
-          <p>No blog posts found. Check your API!</p>
-        )}
-      </main>
-    </div>
-  );
-}
-
-export default App;
+export default app;
