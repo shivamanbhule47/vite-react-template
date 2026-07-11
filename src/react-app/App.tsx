@@ -1,66 +1,56 @@
-// src/App.tsx
-
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import cloudflareLogo from "./assets/Cloudflare_Logo.svg";
-import honoLogo from "./assets/hono.svg";
+import { useState, useEffect } from "react";
 import "./App.css";
 
-function App() {
-	const [count, setCount] = useState(0);
-	const [name, setName] = useState("unknown");
+// Define the shape of a blog post
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+}
 
-	return (
-		<>
-			<div>
-				<a href="https://vite.dev" target="_blank">
-					<img src={viteLogo} className="logo" alt="Vite logo" />
-				</a>
-				<a href="https://react.dev" target="_blank">
-					<img src={reactLogo} className="logo react" alt="React logo" />
-				</a>
-				<a href="https://hono.dev/" target="_blank">
-					<img src={honoLogo} className="logo cloudflare" alt="Hono logo" />
-				</a>
-				<a href="https://workers.cloudflare.com/" target="_blank">
-					<img
-						src={cloudflareLogo}
-						className="logo cloudflare"
-						alt="Cloudflare logo"
-					/>
-				</a>
-			</div>
-			<h1>Vite + React + Hono + Cloudflare</h1>
-			<div className="card">
-				<button
-					onClick={() => setCount((count) => count + 1)}
-					aria-label="increment"
-				>
-					count is {count}
-				</button>
-				<p>
-					Edit <code>src/App.tsx</code> and save to test HMR
-				</p>
-			</div>
-			<div className="card">
-				<button
-					onClick={() => {
-						fetch("/api/")
-							.then((res) => res.json() as Promise<{ name: string }>)
-							.then((data) => setName(data.name));
-					}}
-					aria-label="get name"
-				>
-					Name from API is: {name}
-				</button>
-				<p>
-					Edit <code>worker/index.ts</code> to change the name
-				</p>
-			</div>
-			<p className="read-the-docs">Click on the logos to learn more</p>
-		</>
-	);
+function App() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch posts when the component mounts
+  useEffect(() => {
+    fetch("/api/posts")
+      .then((res) => res.json())
+      .then((data: Post[]) => {
+        setPosts(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching posts:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  return (
+    <div className="container">
+      <header>
+        <h1>My Daily Blog</h1>
+        <p>Welcome to my thoughts and updates.</p>
+      </header>
+
+      <main>
+        {loading ? (
+          <p>Loading posts...</p>
+        ) : posts.length > 0 ? (
+          posts.map((post) => (
+            <article key={post.id} className="blog-card">
+              <h2>{post.title}</h2>
+              <small className="date">{post.date}</small>
+              <p>{post.content}</p>
+            </article>
+          ))
+        ) : (
+          <p>No blog posts found. Check your API!</p>
+        )}
+      </main>
+    </div>
+  );
 }
 
 export default App;
